@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Tracker</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="styles.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container py-4">
+        <div class="text-center mb-4">
+            <h1 class="hero-title mb-3">TimeTracker</h1>
+            <p class="hero-subtitle">Track your time efficiently</p>
+            <p class="text-muted small">Don't restart this page</p>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label small">From</label>
+                        <input type="time" id="fromTime" class="form-control">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">To</label>
+                        <input type="time" id="toTime" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small">Project</label>
+                        <input type="text" id="project" class="form-control" placeholder="e.g., Client Website">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small">Task name & Details</label>
+                        <input type="text" id="taskDetails" class="form-control" placeholder="e.g., Homepage redesign">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small">Type</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="entryType" id="external" value="external" checked>
+                            <label class="btn btn-outline-primary" for="external">
+                                <i class="fas fa-external-link-alt me-1"></i>External
+                            </label>
+                            <input type="radio" class="btn-check" name="entryType" id="internal" value="internal">
+                            <label class="btn btn-outline-primary" for="internal">
+                                <i class="fas fa-building me-1"></i>Internal
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <button onclick="addEntry()" class="btn btn-primary btn-lg w-100 shadow-sm">
+                            <i class="fas fa-plus me-2"></i>Add Time Entry
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <ul class="nav nav-tabs mb-3" id="viewTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all-records" type="button">
+                    All Records
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button">
+                    Summary by Project
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="viewTabsContent">
+            <div class="tab-pane fade show active" id="all-records" role="tabpanel">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0">All Entries</h6>
+                            <button onclick="deleteAll()" class="btn btn-sm btn-outline-danger shadow-sm">
+                                <i class="fas fa-trash me-1"></i>Clear All
+                            </button>
+                        </div>
+                        <div id="entriesList">
+                            <p class="text-muted text-center py-4">No entries yet</p>
+                        </div>
+                        <div id="totalSection" class="d-none">
+                            <hr>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>Total Hours:</strong>
+                                <strong id="totalHours" class="duration-badge fs-5">0.00 h</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="summary" role="tabpanel">
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="card mb-4">
+                            <div class="card-body">
+                                <h6 class="mb-3">Hours by Project</h6>
+                                <div id="summaryTable">
+                                    <p class="text-muted text-center py-4">No data to summarize</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="mb-3">Project Distribution</h6>
+                                <div class="d-flex justify-content-center">
+                                    <canvas id="donutChart" width="300" height="300"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

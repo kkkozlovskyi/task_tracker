@@ -1,5 +1,17 @@
 var entries = [];
 
+// Local storage functions
+function saveEntriesToStorage() {
+    localStorage.setItem('timeTrackerEntries', JSON.stringify(entries));
+}
+
+function loadEntriesFromStorage() {
+    var stored = localStorage.getItem('timeTrackerEntries');
+    if (stored) {
+        entries = JSON.parse(stored);
+    }
+}
+
 function calculateDuration(from, to) {
     var fromParts = from.split(':');
     var toParts = to.split(':');
@@ -46,6 +58,7 @@ function addEntry() {
     };
 
     entries.push(entry);
+    saveEntriesToStorage(); // Save to localStorage
     
     document.getElementById('fromTime').value = '';
     document.getElementById('toTime').value = '';
@@ -61,6 +74,7 @@ function deleteEntry(id) {
     entries = entries.filter(function(entry) {
         return entry.id !== id;
     });
+    saveEntriesToStorage(); // Save to localStorage
     renderEntries();
     renderSummary();
 }
@@ -68,6 +82,7 @@ function deleteEntry(id) {
 function deleteAll() {
     if (entries.length > 0 && confirm('Are you sure you want to delete all entries?')) {
         entries = [];
+        localStorage.removeItem('timeTrackerEntries'); // Clear localStorage
         renderEntries();
         renderSummary();
     }
@@ -105,7 +120,7 @@ function renderEntries() {
                 html += '</div>';
         html += taskDetailsHtml;
         html += '</div>';
-        html += '<div class="d-flex align-items-center gap-2">';
+        html += '<div class="d-flex align-items-center gap-2 text-nowrap">';
         html += '<span class="duration-badge">' + entry.duration + ' h</span>';
         html += '<button onclick="deleteEntry(' + entry.id + ')" class="btn btn-sm btn-outline-danger btn-delete">Delete</button>';
         html += '</div>';
@@ -131,40 +146,97 @@ function renderSummary() {
     var projectDisplayNames = {};
     var projectTasks = {};
     
+    // Group by project + type combination
     for (var i = 0; i < entries.length; i++) {
         var entry = entries[i];
-        if (projectTotals[entry.project]) {
-            projectTotals[entry.project] += entry.duration;
-            if (entry.taskDetails && !projectTasks[entry.project].includes(entry.taskDetails)) {
-                projectTasks[entry.project].push(entry.taskDetails);
+        var projectKey = entry.project + '|' + entry.type;
+        
+        if (projectTotals[projectKey]) {
+            projectTotals[projectKey] += entry.duration;
+            if (entry.taskDetails && !projectTasks[projectKey].includes(entry.taskDetails)) {
+                projectTasks[projectKey].push(entry.taskDetails);
             }
         } else {
-            projectTotals[entry.project] = entry.duration;
-            projectDisplayNames[entry.project] = entry.originalProject || entry.project;
-            projectTasks[entry.project] = entry.taskDetails ? [entry.taskDetails] : [];
+            projectTotals[projectKey] = entry.duration;
+            projectDisplayNames[projectKey] = entry.originalProject || entry.project;
+            projectTasks[projectKey] = entry.taskDetails ? [entry.taskDetails] : [];
         }
     }
 
     var grandTotal = 0;
+    var externalTotal = 0;
+    var internalTotal = 0;
+    
     var html = '<table class="table table-sm mb-0">';
-    html += '<thead><tr><th>Project</th><th>Tasks</th><th class="text-end">Total Hours</th></tr></thead>';
+    html += '<thead><tr><th>Project</th><th>Type</th><th>Tasks</th><th class="text-end">Total Hours</th></tr></thead>';
     html += '<tbody>';
     
-    for (var project in projectTotals) {
-        if (projectTotals.hasOwnProperty(project)) {
-            var hours = projectTotals[project];
-            grandTotal += hours;
-            var tasksText = projectTasks[project].length > 0 ? projectTasks[project].join(', ') : 'No tasks';
-            html += '<tr>';
-            html += '<td>' + projectDisplayNames[project] + '</td>';
-            html += '<td><small class="text-muted">' + tasksText + '</small></td>';
-            html += '<td class="text-end duration-badge">' + hours.toFixed(2) + ' h</td>';
-            html += '</tr>';
+    // First show external projects
+    for (var projectKey in projectTotals) {
+        if (projectTotals.hasOwnProperty(projectKey)) {
+            var parts = projectKey.split('|');
+            var project = parts[0];
+            var type = parts[1];
+            
+            if (type === 'external') {
+                var hours = projectTotals[projectKey];
+                grandTotal += hours;
+                externalTotal += hours;
+                var tasksText = projectTasks[projectKey].length > 0 ? projectTasks[projectKey].join(', ') : 'No tasks';
+                html += '<tr>';
+                html += '<td>' + projectDisplayNames[projectKey] + '</td>';
+                html += '<td><span class="badge bg-primary">External</span></td>';
+                html += '<td><small class="text-muted">' + tasksText + '</small></td>';
+                html += '<td class="text-end duration-badge">' + hours.toFixed(2) + ' h</td>';
+                html += '</tr>';
+            }
         }
     }
     
+    // Then show internal projects
+    for (var projectKey in projectTotals) {
+        if (projectTotals.hasOwnProperty(projectKey)) {
+            var parts = projectKey.split('|');
+            var project = parts[0];
+            var type = parts[1];
+            
+            if (type === 'internal') {
+                var hours = projectTotals[projectKey];
+                grandTotal += hours;
+                internalTotal += hours;
+                var tasksText = projectTasks[projectKey].length > 0 ? projectTasks[projectKey].join(', ') : 'No tasks';
+                html += '<tr>';
+                html += '<td>' + projectDisplayNames[projectKey] + '</td>';
+                html += '<td><span class="badge bg-secondary">Internal</span></td>';
+                html += '<td><small class="text-muted">' + tasksText + '</small></td>';
+                html += '<td class="text-end duration-badge text-nowrap">' + hours.toFixed(2) + ' h</td>';
+                html += '</tr>';
+            }
+        }
+    }
+    
+    // Add subtotals
+    if (externalTotal > 0) {
+        html += '<tr class="table-light">';
+        html += '<td><strong>External Subtotal</strong></td>';
+        html += '<td></td>';
+        html += '<td></td>';
+        html += '<td class="text-end"><strong class="duration-badge">' + externalTotal.toFixed(2) + ' h</strong></td>';
+        html += '</tr>';
+    }
+    
+    if (internalTotal > 0) {
+        html += '<tr class="table-light">';
+        html += '<td><strong>Internal Subtotal</strong></td>';
+        html += '<td></td>';
+        html += '<td></td>';
+        html += '<td class="text-end"><strong class="duration-badge">' + internalTotal.toFixed(2) + ' h</strong></td>';
+        html += '</tr>';
+    }
+    
     html += '<tr class="table-primary">';
-    html += '<td><strong>Total</strong></td>';
+    html += '<td><strong>Grand Total</strong></td>';
+    html += '<td></td>';
     html += '<td></td>';
     html += '<td class="text-end"><strong class="duration-badge">' + grandTotal.toFixed(2) + ' h</strong></td>';
     html += '</tr>';
@@ -203,10 +275,14 @@ function updateDonutChart(projectTotals, projectDisplayNames) {
         '#ffecd2', '#fcb69f', '#a8edea', '#fed6e3'
     ];
     
-    for (var project in projectTotals) {
-        if (projectTotals.hasOwnProperty(project)) {
-            labels.push(projectDisplayNames[project]);
-            data.push(projectTotals[project]);
+    for (var projectKey in projectTotals) {
+        if (projectTotals.hasOwnProperty(projectKey)) {
+            var parts = projectKey.split('|');
+            var project = parts[0];
+            var type = parts[1];
+            var displayName = projectDisplayNames[projectKey] + ' (' + type.charAt(0).toUpperCase() + type.slice(1) + ')';
+            labels.push(displayName);
+            data.push(projectTotals[projectKey]);
         }
     }
     
@@ -245,6 +321,7 @@ function updateDonutChart(projectTotals, projectDisplayNames) {
 
 // Initialize the app when the page loads
 document.addEventListener('DOMContentLoaded', function() {
+    loadEntriesFromStorage(); // Load entries from localStorage
     renderEntries();
     renderSummary();
 });
